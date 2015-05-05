@@ -15,8 +15,10 @@
 const int chipSelect = 8;
 
 // Our attached sensors.
-const int uvSensorPin = A0;
-const int ozoneSensorPin = A1;
+const int ozoneSensorPin = A2;
+int UVOUT = A0; //Output from the UV sensor.
+int REF_3V3 = A1; //3.3V power on the Arduino board.
+
 
 // Power by connecting Vin to 3-5V, GND to GND
 // Uses I2C - connect SCL to the SCL pin, SDA to SDA pin
@@ -49,12 +51,18 @@ void setup()
   }
   Serial.println("card initialized.");
   
+  // UV Sensor pins.
+  pinMode(UVOUT, INPUT);
+  pinMode(REF_3V3, INPUT);
+  
   // TODO: Do we need to software tune the analog inputs on startup?
   
 }
 
 void loop()
 {
+  
+  // BARO SENSOR.
   
   float pressurekPa = 0.0;
   float altm = -100.0;
@@ -70,12 +78,30 @@ void loop()
     tempC = baro.getTemperature();
   }
   
+  // UV SENSOR.
+  int uvLevel = averageAnalogRead(UVOUT);
+  int refLevel = averageAnalogRead(REF_3V3);
+  //Use the 3.3V power pin as a reference to get a very accurate output value from sensor
+  float uvOutputVoltage = 3.3 / refLevel * uvLevel;
+  float uvIntensity = mapfloat(uvOutputVoltage, 0.99, 2.9, 0.0, 15.0);
+
+  Serial.print("MP8511 output: ");
+  Serial.print(uvLevel);
+
+  Serial.print(" MP8511 voltage: ");
+  Serial.print(uvOutputVoltage);
+
+  Serial.print(" UV Intensity (mW/cm^2): ");
+  Serial.print(uvIntensity);
+  
+  
+  // WRITE TO CARD.
   // make a string for assembling the data to log:
   String dataString = "";
   time_t currentTime = millis();
   dataString += String(currentTime);
   dataString += ",";
-  dataString += String(analogRead(uvSensorPin));
+  dataString += String(uvIntensity);
   dataString += ",";
   dataString += String(analogRead(ozoneSensorPin));
   dataString += ",";
@@ -106,4 +132,25 @@ void loop()
   // Slow down the loop.
   delay(250);
   
+}
+
+//Takes an average of readings on a given pin
+//Returns the average
+int averageAnalogRead(int pinToRead)
+{
+  byte numberOfReadings = 8;
+  unsigned int runningValue = 0; 
+
+  for(int x = 0 ; x < numberOfReadings ; x++)
+    runningValue += analogRead(pinToRead);
+  runningValue /= numberOfReadings;
+
+  return(runningValue);  
+}
+
+//The Arduino Map function but for floats
+//From: http://forum.arduino.cc/index.php?topic=3922.0
+float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
