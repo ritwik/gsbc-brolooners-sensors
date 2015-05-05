@@ -1,9 +1,12 @@
 #include <SPI.h>
 #include <SD.h>
+#include <Wire.h>
 
 // External Libraries. Need to install from the package manager.
 // Sketch > Include Library > Manage Libraries ...
 #include <Time.h>
+// Compiled from https://github.com/adafruit/Adafruit_MPL3115A2_Library
+#include <Adafruit_MPL3115A2.h>
 
 // On the Ethernet Shield, CS is pin 4. Note that even if it's not
 // used as the CS pin, the hardware CS pin (10 on most Arduino boards,
@@ -14,7 +17,12 @@ const int chipSelect = 8;
 // Our attached sensors.
 const int uvSensorPin = A0;
 const int ozoneSensorPin = A1;
-const int barometricSensorPin = A2;
+
+// Power by connecting Vin to 3-5V, GND to GND
+// Uses I2C - connect SCL to the SCL pin, SDA to SDA pin
+// See the Wire tutorial for pinouts for each Arduino
+// http://arduino.cc/en/reference/wire
+Adafruit_MPL3115A2 baro = Adafruit_MPL3115A2();
 
 void setup()
 {
@@ -47,6 +55,21 @@ void setup()
 
 void loop()
 {
+  
+  float pressurekPa = 0.0;
+  float altm = -100.0;
+  float tempC = -100.0;
+  
+  if (! baro.begin()) {
+    Serial.println("Couldnt find sensor");
+  } else {
+    float pascals = baro.getPressure();
+    // We want to convert to kPa for storage space.
+    pressurekPa = pascals / 1000;
+    altm = baro.getAltitude();
+    tempC = baro.getTemperature();
+  }
+  
   // make a string for assembling the data to log:
   String dataString = "";
   time_t currentTime = millis();
@@ -56,7 +79,11 @@ void loop()
   dataString += ",";
   dataString += String(analogRead(ozoneSensorPin));
   dataString += ",";
-  dataString += String(analogRead(barometricSensorPin));
+  dataString += String(pressurekPa);
+  dataString += ",";
+  dataString += String(altm);
+  dataString += ",";
+  dataString += String(tempC);
 
 
   // open the file. note that only one file can be open at a time,
@@ -75,5 +102,8 @@ void loop()
   else {
     Serial.println("error opening datalog.txt");
   }
+  
+  // Slow down the loop.
+  delay(250);
   
 }
