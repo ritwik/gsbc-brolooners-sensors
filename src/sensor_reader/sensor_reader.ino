@@ -12,6 +12,7 @@ We've taken code snippets and learnings from:
 - SD Card reader - 
 - Barometer - 
 - UV sensor - 
+- Ozone sensor -
 */
 
 #include <SPI.h>
@@ -70,14 +71,14 @@ void setup()
   // UV Sensor pins.
   pinMode(UVOUT, INPUT);
   pinMode(REF_3V3, INPUT);
+  pinMode(ozoneSensorPin, INPUT);
   
   // TODO: Do we need to software tune the analog inputs on startup?
   
 }
 
 void loop()
-{
-  
+{ 
   // Barometer (+altiture & temp).
   float pressurekPa = 0.0;
   float altm = -100.0;
@@ -100,7 +101,8 @@ void loop()
   float uvIntensity = mapfloat(uvOutputVoltage, 0.99, 2.9, 0.0, 15.0);
   
   // Ozone sensor.
-  // TODO.
+  int ozoneRawValue = analogRead(ozoneSensorPin);
+  Serial.println("Ozone: " + String(ozoneSensorPin));
   
   // Write to card.
   // make a string for assembling the data to log:
@@ -117,6 +119,8 @@ void loop()
   dataString += String(altm);
   dataString += ",";
   dataString += String(tempC);
+  dataString += ",";
+  dataString += String(ozoneRawValue);
 
 
   // open the file. note that only one file can be open at a time,
@@ -133,7 +137,7 @@ void loop()
   }
   // if the file isn't open, pop up an error:
   else {
-    Serial.println("error opening datalog.txt");
+    //Serial.println("error opening datalog.txt");
   }
   
   // Slow down the loop.
@@ -152,7 +156,7 @@ int averageAnalogRead(int pinToRead)
     runningValue += analogRead(pinToRead);
   runningValue /= numberOfReadings;
 
-  return(runningValue);  
+  return(runningValue);
 }
 
 //The Arduino Map function but for floats
