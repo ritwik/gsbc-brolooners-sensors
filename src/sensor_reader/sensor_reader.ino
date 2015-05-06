@@ -1,3 +1,19 @@
+/**
+Sensor Reader.
+
+Arduino sketch for reading a few sensors and logging the data
+to a file on an SD card. Plan is to put the device on a high 
+altitude baloon as part of the Global Space Baloon Challenge.
+- UV sensor
+- Barometer
+- Ozone sensor
+
+We've taken code snippets and learnings from:
+- SD Card reader - 
+- Barometer - 
+- UV sensor - 
+*/
+
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h>
@@ -62,12 +78,10 @@ void setup()
 void loop()
 {
   
-  // BARO SENSOR.
-  
+  // Barometer (+altiture & temp).
   float pressurekPa = 0.0;
   float altm = -100.0;
   float tempC = -100.0;
-  
   if (! baro.begin()) {
     Serial.println("Couldnt find sensor");
   } else {
@@ -78,24 +92,17 @@ void loop()
     tempC = baro.getTemperature();
   }
   
-  // UV SENSOR.
+  // Uv Sensor.
   int uvLevel = averageAnalogRead(UVOUT);
   int refLevel = averageAnalogRead(REF_3V3);
   //Use the 3.3V power pin as a reference to get a very accurate output value from sensor
   float uvOutputVoltage = 3.3 / refLevel * uvLevel;
   float uvIntensity = mapfloat(uvOutputVoltage, 0.99, 2.9, 0.0, 15.0);
-
-  Serial.print("MP8511 output: ");
-  Serial.print(uvLevel);
-
-  Serial.print(" MP8511 voltage: ");
-  Serial.print(uvOutputVoltage);
-
-  Serial.print(" UV Intensity (mW/cm^2): ");
-  Serial.print(uvIntensity);
   
+  // Ozone sensor.
+  // TODO.
   
-  // WRITE TO CARD.
+  // Write to card.
   // make a string for assembling the data to log:
   String dataString = "";
   time_t currentTime = millis();
